@@ -2,7 +2,8 @@
     "base_api_url": "https://api.openf1.org/v1/",
     "landing_dir": "data/landing/openf1",
     "delay_between_requests": 3,
+    "data_path": "data",
     "request_timeout": 30,
     "openf1_endpoints": ["laps", "stints", "pit", "position", "intervals", "weather", "race_control", "drivers"],
-    "openf1_telemetry_ends": ["cara_data", "location"]
+    "openf1_telemetry_ends": ["car_data", "location"]
 }
