@@ -9,15 +9,29 @@ year = 2024
 
 
 repo_root = Path(__file__).resolve().parents[2]
-checkpoint_path = repo_root / "data" / "_checkpoint"
+
+config_path = repo_root / "config" / "openf1.json"
+config_text = config_path.read_text(encoding="utf-8")
+config = json.loads(config_text)
+required = ["base_api_url",
+    "landing_dir",
+    "delay_between_requests",
+    "request_timeout",
+    "openf1_endpoints",
+    "openf1_telemetry_ends"]
+
+for req in required:
+    if req not in config:
+        raise ValueError(f"Config error: '{req}' missing in openf1.json")
+
+
+checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 if checkpoint_path.exists():
     print("checkpoint found, resuming")
+    check_read = checkpoint_path.read_text(encoding="utf-8")
+    check = json.loads(check_read)
 else:
-    checkpoint_path = checkpoint_path / "snapshot.json"
-check_read = checkpoint_path.read_text(encoding="utf-8")
-check = json.loads(check_read)
-
-
+    check = []
 
 config_path = repo_root / "config" / "openf1.json"
 config_text = config_path.read_text(encoding="utf-8")
@@ -42,7 +56,7 @@ for c_end in joined_config_list:
 print("Endpoints and required fields verified and passed")
 
 
-def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, driver_number=None):
+def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, driver_number=None, checkpoint_list=None, snapshot=None):
 
     file_name = f"{endpoint_name}.json"
     base_path = landing_dir/endpoint_name/str(year)
@@ -55,6 +69,11 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
     if driver_number is not None:
         params["driver_number"] = driver_number
         file_name = f"driver_{driver_number}.json"
+
+    build_string = f"{endpoint_name}/{year}/{sess_key}/{file_name}"
+    if build_string in check:
+        print("File already found, skipping.../n")
+        return
     
     query_url = f"{endpoint_name}?" + urlencode(params)
     file_path = path_with_session_id/file_name
@@ -73,13 +92,16 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
         
         print(f"json saved at path {path_with_session_id} with file name {file_name}")
         print(f"rows fetched in {file_name}: {len(data)}")
+  
     elif status == 404:
         print(f"No data found for the parameters: endpoint: {endpoint_name}, year: {year}, session: {sess_key}")
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
+    check.append(build_string)
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_path.write_text(json.dumps(check), encoding="utf-8")
             
-    
-   
+      
 for endpoint in config["openf1_endpoints"]:
     fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"])
 
