@@ -55,8 +55,13 @@ for c_end in joined_config_list:
 
 print("Endpoints and required fields verified and passed")
 
+def safe_write(path, text):
+    temp_path = path.with_suffix(".tmp")
+    temp_path.write_text(text, encoding="utf-8")
+    temp_path.replace(path)
 
-def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, driver_number=None, checkpoint_list=None, snapshot=None):
+
+def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, checkpoint_path, checkpoint_list, driver_number=None):
 
     file_name = f"{endpoint_name}.json"
     base_path = landing_dir/endpoint_name/str(year)
@@ -71,9 +76,13 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
         file_name = f"driver_{driver_number}.json"
 
     build_string = f"{endpoint_name}/{year}/{sess_key}/{file_name}"
-    if build_string in check:
-        print("File already found, skipping.../n")
-        return
+    if build_string in checkpoint_list:
+        if driver_number is not None:
+            print(f"File already found, skipping {endpoint_name} for driver {driver_number}")
+            return
+        else:
+            print(f"File already found, skipping {endpoint_name}")
+            return
     
     query_url = f"{endpoint_name}?" + urlencode(params)
     file_path = path_with_session_id/file_name
@@ -88,7 +97,7 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
     if status == 200:
         data = response.json()
         path_with_session_id.mkdir(parents=True, exist_ok=True)
-        file_path.write_text(response.text, encoding="utf-8")
+        safe_write(file_path,response.text)
         
         print(f"json saved at path {path_with_session_id} with file name {file_name}")
         print(f"rows fetched in {file_name}: {len(data)}")
@@ -97,13 +106,13 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
         print(f"No data found for the parameters: endpoint: {endpoint_name}, year: {year}, session: {sess_key}")
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
-    check.append(build_string)
+    checkpoint_list.append(build_string)
     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    checkpoint_path.write_text(json.dumps(check), encoding="utf-8")
+    safe_write(checkpoint_path, json.dumps(checkpoint_list))
             
       
 for endpoint in config["openf1_endpoints"]:
-    fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"])
+    fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check)
 
 driver_num = []
 numbers = repo_root / config["landing_dir"] / "drivers" / str(year) / str(session_id) / "drivers.json"
@@ -116,4 +125,4 @@ print(len(driver_num))
 
 for endp in config["openf1_telemetry_ends"]:
     for driver in driver_num:
-        fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],driver)
+        fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, driver)
