@@ -5,5 +5,7 @@
     "data_path": "data",
     "request_timeout": 30,
     "openf1_endpoints": ["laps", "stints", "pit", "position", "intervals", "weather", "race_control", "drivers"],
-    "openf1_telemetry_ends": ["car_data", "location"]
+    "openf1_telemetry_ends": ["car_data", "location"],
+    "max_retries": 3,
+    "retry_wait":2
 }

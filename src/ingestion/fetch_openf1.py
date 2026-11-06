@@ -18,7 +18,9 @@ required = ["base_api_url",
     "delay_between_requests",
     "request_timeout",
     "openf1_endpoints",
-    "openf1_telemetry_ends"]
+    "openf1_telemetry_ends",
+    "max_retries",
+    "retry_wait"]
 
 for req in required:
     if req not in config:
@@ -33,16 +35,6 @@ if checkpoint_path.exists():
 else:
     check = []
 
-config_path = repo_root / "config" / "openf1.json"
-config_text = config_path.read_text(encoding="utf-8")
-config = json.loads(config_text)
-required = ["base_api_url",
-    "landing_dir",
-    "delay_between_requests",
-    "request_timeout",
-    "openf1_endpoints",
-    "openf1_telemetry_ends"]
-
 for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' missing in openf1.json")
@@ -55,13 +47,26 @@ for c_end in joined_config_list:
 
 print("Endpoints and required fields verified and passed")
 
+def get_with_retry(base_url, query_url, timeout, max_retries, retry_wait):
+    for attempt in range (1, max_retries+1):
+        print(f"Attempt {attempt} of {max_retries}")
+        try:
+            response = requests.get(url=base_url+query_url,timeout=timeout)
+            return response
+        except(requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+            print(f"Request failed on {base_url+query_url}")
+            print("retrying....")
+            sleep(retry_wait)
+    raise ConnectionError(f"request failed after {max_retries} on {base_url+query_url}")
+
+    
 def safe_write(path, text):
     temp_path = path.with_suffix(".tmp")
     temp_path.write_text(text, encoding="utf-8")
     temp_path.replace(path)
 
 
-def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, checkpoint_path, checkpoint_list, driver_number=None):
+def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, checkpoint_path, checkpoint_list, max_retries, sleep_time_retry, driver_number=None):
 
     file_name = f"{endpoint_name}.json"
     base_path = landing_dir/endpoint_name/str(year)
@@ -89,7 +94,7 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
 
     print(f"Fetching endpoint: {endpoint_name}")
 
-    response = requests.get(url=base_api_url+query_url,timeout=request_timeout)
+    response = get_with_retry(base_api_url,query_url,request_timeout, max_retries, sleep_time_retry)
     sleep(delay_bw_req)
     status = response.status_code
 
@@ -112,7 +117,7 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
             
       
 for endpoint in config["openf1_endpoints"]:
-    fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check)
+    fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check, config["max_retries"], config["retry_wait"])
 
 driver_num = []
 numbers = repo_root / config["landing_dir"] / "drivers" / str(year) / str(session_id) / "drivers.json"
@@ -125,4 +130,4 @@ print(len(driver_num))
 
 for endp in config["openf1_telemetry_ends"]:
     for driver in driver_num:
-        fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, driver)
+        fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
