@@ -5,8 +5,7 @@ from time import sleep
 import json
 
 session_id = 9558
-year = 2024
-
+year = 2028
 
 repo_root = Path(__file__).resolve().parents[2]
 
@@ -20,13 +19,31 @@ required = ["base_api_url",
     "openf1_endpoints",
     "openf1_telemetry_ends",
     "max_retries",
-    "retry_wait"]
+    "retry_wait",
+    "sessions",
+    "max_sessions"]
 
 for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' missing in openf1.json")
 
-
+def discover_sessions(year, session_name):
+    params = urlencode({
+        "year" : year,
+        "session_name" : session_name
+    })
+    path_sess = Path(__file__).resolve().parents[2]/config["landing_dir"]/"sessions"/str(year)
+    path_sess.mkdir(parents=True, exist_ok=True)
+    path_sess = path_sess/"sessions.json"
+    sess_response = get_with_retry("https://api.openf1.org/v1/", f"sessions?{params}", 30, 3, 2)
+    if sess_response.status_code == 200:
+        safe_write(path_sess, sess_response.text)
+        print("Saved sessions")
+    elif sess_response.status_code == 404:
+        print("No data for given params")
+    else:
+        raise ValueError(f"Exited with {sess_response.status_code}")
+    
 checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 if checkpoint_path.exists():
     print("checkpoint found, resuming")
@@ -124,10 +141,12 @@ numbers = repo_root / config["landing_dir"] / "drivers" / str(year) / str(sessio
 text_num = numbers.read_text(encoding="utf-8")
 data_n = json.loads(text_num)
 
-for drn in data_n:
-    driver_num.append(drn["driver_number"])
-print(len(driver_num))
+# for drn in data_n:
+#     driver_num.append(drn["driver_number"])
+# print(len(driver_num))
 
-for endp in config["openf1_telemetry_ends"]:
-    for driver in driver_num:
-        fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
+# for endp in config["openf1_telemetry_ends"]:
+#     for driver in driver_num:
+#         fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
+
+discover_sessions(year, config["sessions"])
