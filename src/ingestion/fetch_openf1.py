@@ -5,7 +5,7 @@ from time import sleep
 import json
 
 session_id = 9558
-year = 2028
+year = 2024
 
 repo_root = Path(__file__).resolve().parents[2]
 
@@ -27,22 +27,34 @@ for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' missing in openf1.json")
 
-def discover_sessions(year, session_name):
+
+def discover_sessions(year, session_name, landingp, session_timeout, max_retry, gap_bw_retry, base_url, repo_root):
     params = urlencode({
         "year" : year,
         "session_name" : session_name
     })
-    path_sess = Path(__file__).resolve().parents[2]/config["landing_dir"]/"sessions"/str(year)
+    path_sess = repo_root/landingp/"sessions"/str(year)
     path_sess.mkdir(parents=True, exist_ok=True)
     path_sess = path_sess/"sessions.json"
-    sess_response = get_with_retry("https://api.openf1.org/v1/", f"sessions?{params}", 30, 3, 2)
+    sess_response = get_with_retry(base_url, f"sessions?{params}", session_timeout, max_retry, gap_bw_retry)
     if sess_response.status_code == 200:
+        json_res = sess_response.json()
         safe_write(path_sess, sess_response.text)
         print("Saved sessions")
+        sess_list = []
+        for sess in json_res:
+            if sess["is_cancelled"] == False:
+                sess_list.append(sess["session_key"])
+            else:
+                print(f"skipping session {sess} as it is cacelled")
+        if not sess_list:
+            raise ValueError(f"List is empty, please change parameters, {year}")
+        else:
+            return sess_list
     elif sess_response.status_code == 404:
-        print("No data for given params")
+        raise ValueError(f"No data for given params {year} and {session_name}")
     else:
-        raise ValueError(f"Exited with {sess_response.status_code}")
+        raise ValueError(f"Exited with {sess_response.status_code} for {year}")
     
 checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 if checkpoint_path.exists():
@@ -63,6 +75,7 @@ for c_end in joined_config_list:
         raise ValueError(f"Endpoint names not accurate: {c_end}")
 
 print("Endpoints and required fields verified and passed")
+
 
 def get_with_retry(base_url, query_url, timeout, max_retries, retry_wait):
     for attempt in range (1, max_retries+1):
@@ -133,13 +146,14 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
     safe_write(checkpoint_path, json.dumps(checkpoint_list))
             
       
-for endpoint in config["openf1_endpoints"]:
-    fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check, config["max_retries"], config["retry_wait"])
+# for endpoint in config["openf1_endpoints"]:
+#     fetch_and_save(endpoint,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check, config["max_retries"], config["retry_wait"])
 
-driver_num = []
-numbers = repo_root / config["landing_dir"] / "drivers" / str(year) / str(session_id) / "drivers.json"
-text_num = numbers.read_text(encoding="utf-8")
-data_n = json.loads(text_num)
+
+# driver_num = []
+# numbers = repo_root / config["landing_dir"] / "drivers" / str(year) / str(session_id) / "drivers.json"
+# text_num = numbers.read_text(encoding="utf-8")
+# data_n = json.loads(text_num)
 
 # for drn in data_n:
 #     driver_num.append(drn["driver_number"])
@@ -149,4 +163,4 @@ data_n = json.loads(text_num)
 #     for driver in driver_num:
 #         fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
 
-discover_sessions(year, config["sessions"])
+sessions_all = discover_sessions(year, config["sessions"], config["landing_dir"], config["request_timeout"], config["max_retries"], config["retry_wait"], config["base_api_url"], repo_root)
