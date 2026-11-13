@@ -5,7 +5,7 @@ from time import sleep
 import json
 
 session_id = 9558
-year = 2024
+year = 2023
 
 repo_root = Path(__file__).resolve().parents[2]
 
@@ -20,41 +20,45 @@ required = ["base_api_url",
     "openf1_telemetry_ends",
     "max_retries",
     "retry_wait",
-    "sessions",
+    "session_name",
     "max_sessions"]
 
 for req in required:
     if req not in config:
-        raise ValueError(f"Config error: '{req}' missing in openf1.json")
+        raise ValueError(f"Config error: '{req}' required configuration variable is missing")
 
 
 def discover_sessions(year, session_name, landingp, session_timeout, max_retry, gap_bw_retry, base_url, repo_root):
+
     params = urlencode({
         "year" : year,
         "session_name" : session_name
     })
-    path_sess = repo_root/landingp/"sessions"/str(year)
-    path_sess.mkdir(parents=True, exist_ok=True)
-    path_sess = path_sess/"sessions.json"
-    sess_response = get_with_retry(base_url, f"sessions?{params}", session_timeout, max_retry, gap_bw_retry)
-    if sess_response.status_code == 200:
-        json_res = sess_response.json()
-        safe_write(path_sess, sess_response.text)
+
+    session_path = repo_root/landingp/"sessions"/str(year)
+    session_path.mkdir(parents=True, exist_ok=True)
+    session_path = session_path/"sessions.json"
+
+    session_call_response = get_with_retry(base_url, f"sessions?{params}", session_timeout, max_retry, gap_bw_retry)
+
+    if session_call_response.status_code == 200:
+        json_session_response = session_call_response.json()
+        safe_write(session_path, session_call_response.text)
         print("Saved sessions")
-        sess_list = []
-        for sess in json_res:
-            if sess["is_cancelled"] == False:
-                sess_list.append(sess["session_key"])
+        session_list = []
+        for session in json_session_response:
+            if not session["is_cancelled"]:
+                session_list.append(session["session_key"])
             else:
-                print(f"skipping session {sess} as it is cacelled")
-        if not sess_list:
+                print(f"skipping session_key: {session['session_key']}\nInfo: Circuit Name: {session['location']}, Country: {session['country_name']} and year: {session['year']}; as it is cancelled")
+        if not session_list:
             raise ValueError(f"List is empty, please change parameters, {year}")
         else:
-            return sess_list
-    elif sess_response.status_code == 404:
-        raise ValueError(f"No data for given params {year} and {session_name}")
+            return session_list
+    elif session_call_response.status_code == 404:
+        raise ValueError(f"No data for {year} with session: {session_name}")
     else:
-        raise ValueError(f"Exited with {sess_response.status_code} for {year}")
+        raise ValueError(f"Exited with {session_call_response.status_code} for {year}")
     
 checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 if checkpoint_path.exists():
@@ -163,4 +167,12 @@ def fetch_and_save(endpoint_name, sess_key, year, delay_bw_req, base_api_url, la
 #     for driver in driver_num:
 #         fetch_and_save(endp,session_id,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
 
-sessions_all = discover_sessions(year, config["sessions"], config["landing_dir"], config["request_timeout"], config["max_retries"], config["retry_wait"], config["base_api_url"], repo_root)
+sessions_all = discover_sessions(year, config["session_name"], config["landing_dir"], config["request_timeout"], config["max_retries"], config["retry_wait"], config["base_api_url"], repo_root)
+
+selected_sessions = sessions_all[:config["max_sessions"]]
+
+print(f"{len(selected_sessions)} out of {len(sessions_all)} sessions stored in selected_sessions")
+if session_id in sessions_all:
+    print(f"Check passed: Found {session_id} in sessions list")
+else:
+    print(f"Check failed: {session_id} not found in discovery")
