@@ -3,13 +3,23 @@ from urllib.parse import urlencode
 from pathlib import Path
 from time import sleep
 import json
+import sys
+
+print("Checking which config file to use...\n")
+
+if len(sys.argv) > 1:
+    setting_config = sys.argv[1]
+    print(f"Using ADB config file {sys.argv[1]}\n")
+else:
+    setting_config = "openf1.json"
+    print(f"Using local config file {setting_config}\n")
 
 session_id = 9558
 year = 2024
 
 repo_root = Path(__file__).resolve().parents[2]
 
-config_path = repo_root / "config" / "openf1.json"
+config_path = repo_root / "config" / setting_config
 config_text = config_path.read_text(encoding="utf-8")
 config = json.loads(config_text)
 required = ["base_api_url",
