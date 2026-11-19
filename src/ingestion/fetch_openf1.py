@@ -10,7 +10,7 @@ print("Checking which config file to use...\n")
 if len(sys.argv) > 2:
     setting_config = sys.argv[1]
     print(f"Using ADB config file {sys.argv[1]}\n")
-    repo_root = sys.argv[2]
+    repo_root = Path(sys.argv[2])
 elif len(sys.argv) > 1:
     print("config root for ADB not provided")
 else:
@@ -23,7 +23,7 @@ year = 2024
 
 
 
-config_path = repo_root / "config" / setting_config
+config_path = repo_root/"config"/setting_config
 config_text = config_path.read_text(encoding="utf-8")
 config = json.loads(config_text)
 required = ["base_api_url",
