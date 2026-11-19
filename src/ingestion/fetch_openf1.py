@@ -7,17 +7,21 @@ import sys
 
 print("Checking which config file to use...\n")
 
-if len(sys.argv) > 1:
+if len(sys.argv) > 2:
     setting_config = sys.argv[1]
     print(f"Using ADB config file {sys.argv[1]}\n")
+    repo_root = sys.argv[2]
+elif len(sys.argv) > 1:
+    print("config root for ADB not provided")
 else:
     setting_config = "openf1.json"
+    repo_root = Path(__file__).resolve().parents[2]
     print(f"Using local config file {setting_config}\n")
 
 session_id = 9558
 year = 2024
 
-repo_root = Path(__file__).resolve().parents[2]
+
 
 config_path = repo_root / "config" / setting_config
 config_text = config_path.read_text(encoding="utf-8")
@@ -36,7 +40,6 @@ required = ["base_api_url",
 for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' required configuration variable is missing")
-
     
 checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 if checkpoint_path.exists():
