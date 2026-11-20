@@ -33,7 +33,7 @@ required = ["base_api_url",
     "request_timeout",
     "openf1_endpoints",
     "openf1_telemetry_ends",
-    "data_path"
+    "data_path",
     "max_retries",
     "retry_wait",
     "session_name",
