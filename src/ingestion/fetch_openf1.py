@@ -164,9 +164,14 @@ def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url,
         print(f"No data found for the parameters: endpoint: {endpoint_name}, year: {year}, session: {session_key}")
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
-    checkpoint_list.append(built_checkpoint_id)
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    safe_write(checkpoint_path, json.dumps(checkpoint_list))
+    
+    if checkpoint_path.exists():
+        checkpoint_list.append(built_checkpoint_id)
+        safe_write(checkpoint_path, json.dumps(checkpoint_list))
+    else:
+        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+        checkpoint_list.append(built_checkpoint_id)
+        safe_write(checkpoint_path, json.dumps(checkpoint_list))
 
 # main-call-----
 print("Discovering sessions.....")
