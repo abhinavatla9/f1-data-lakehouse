@@ -159,7 +159,7 @@ def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url,
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
     checkpoint_list.append(built_checkpoint_id)
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+    checkpoint_path.parent.mkdir(exist_ok=True)
     safe_write(checkpoint_path, json.dumps(checkpoint_list))
 
 # main-call-----
