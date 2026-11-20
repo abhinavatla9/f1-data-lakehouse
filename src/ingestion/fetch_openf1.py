@@ -41,10 +41,8 @@ for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' required configuration variable is missing")
 
-if len(sys.argv) > 2:
+if setting_config == "adb-config-f1.json":
     checkpoint_path = Path(config["data_path"])/"_checkpoint"/"snapshot.json"
-elif len(sys.argv) > 1:
-    print("please provide checkpoint path")
 else:   
     checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
 
