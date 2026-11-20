@@ -40,8 +40,14 @@ required = ["base_api_url",
 for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' required configuration variable is missing")
-    
-checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
+
+if len(sys.argv) > 2:
+    checkpoint_path = Path(config["data_path"])/"_checkpoint"/"snapshot.json"
+elif len(sys.argv) > 1:
+    print("please provide checkpoint path")
+else:   
+    checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
+
 if checkpoint_path.exists():
     print("checkpoint found, resuming")
     check_read = checkpoint_path.read_text(encoding="utf-8")
