@@ -14,9 +14,9 @@ print("checking config file...\n")
 if len(sys.argv) > 2:
     setting_config = sys.argv[1]
     print(f"using ADB config file {sys.argv[1]}\n") 
-    repo_root = Path(sys.argv[2]) #using repo_root = /Workspace/Users/lareddy.abhi@gmail.com/f1-data-lakehouse
+    repo_root = Path(sys.argv[2])
 elif len(sys.argv) > 1:
-    print("config root for ADB not provided")
+    raise ValueError("config root for ADB not provided")
 else:
     setting_config = "openf1.json"
     repo_root = Path(__file__).resolve().parents[2]
@@ -24,7 +24,7 @@ else:
 
 
 #checking config path
-config_path = repo_root/"config"/setting_config #using config_path = /Workspace/Users/lareddy.abhi@gmail.com/f1-data-lakehouse/config/adb-config.json
+config_path = repo_root/"config"/setting_config
 config_text = config_path.read_text(encoding="utf-8")
 config = json.loads(config_text)
 required = ["base_api_url",
@@ -43,7 +43,11 @@ for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' required configuration variable is missing")
 
-checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
+if setting_config == "adb-config-f1.json":
+    checkpoint_path = Path(config["data_path"])/"_checkpoint"/"snapshot.json"
+else:
+    checkpoint_path = repo_root/config["data_path"]/"_checkpoint"/"snapshot.json"
+
 
 if checkpoint_path.exists():
     print("checkpoint found, resuming")
@@ -52,9 +56,6 @@ if checkpoint_path.exists():
 else:
     check = []
 
-for req in required:
-    if req not in config:
-        raise ValueError(f"Config error: '{req}' missing in openf1.json")
 
 verified_endps = ["laps", "stints", "pit", "position", "intervals", "weather", "race_control", "drivers", "car_data", "location"]
 joined_config_list = config["openf1_telemetry_ends"] + config["openf1_endpoints"]
@@ -161,14 +162,9 @@ def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url,
         print(f"No data found for the parameters: endpoint: {endpoint_name}, year: {year}, session: {session_key}")
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
-    
-    if checkpoint_path.exists():
-        checkpoint_list.append(built_checkpoint_id)
-        safe_write(checkpoint_path, json.dumps(checkpoint_list))
-    else:
-        checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-        checkpoint_list.append(built_checkpoint_id)
-        safe_write(checkpoint_path, json.dumps(checkpoint_list))
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True) 
+    checkpoint_list.append(built_checkpoint_id)
+    safe_write(checkpoint_path, json.dumps(checkpoint_list))
 
 # main-call-----
 print("Discovering sessions.....")
