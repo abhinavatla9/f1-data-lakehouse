@@ -1,0 +1,63 @@
+{
+  "name": "f1-ingestion-job",
+  "email_notifications": {
+    "on_failure": [
+      "abhinavatla9@gmail.com"
+    ],
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "notification_settings": {
+    "no_alert_for_skipped_runs": false,
+    "no_alert_for_canceled_runs": false
+  },
+  "timeout_seconds": 0,
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "f1-ingestion-openf1",
+      "run_if": "ALL_SUCCESS",
+      "spark_python_task": {
+        "python_file": "/Workspace/Users/lareddy.abhi@gmail.com/f1-data-lakehouse/src/ingestion/fetch_openf1.py",
+        "parameters": [
+          "adb-config-f1.json",
+          "/Workspace/Users/lareddy.abhi@gmail.com/f1-data-lakehouse"
+        ]
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "environment_key": "Default",
+      "disabled": false
+    },
+    {
+      "task_key": "load_to_delta_bronze",
+      "depends_on": [
+        {
+          "task_key": "f1-ingestion-openf1"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/lareddy.abhi@gmail.com/f1-data-lakehouse/src/jobs/01_bronze_autoloader",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {},
+      "disabled": false
+    }
+  ],
+  "queue": {
+    "enabled": true
+  },
+  "environments": [
+    {
+      "environment_key": "Default",
+      "spec": {
+        "environment_version": "6"
+      }
+    }
+  ],
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}
