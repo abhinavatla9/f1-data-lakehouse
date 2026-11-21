@@ -3,21 +3,37 @@ from urllib.parse import urlencode
 from pathlib import Path
 from time import sleep
 import json
+import sys
 
 session_id = 9558
 year = 2024
 
-repo_root = Path(__file__).resolve().parents[2]
+print("checking config file...\n")
 
-config_path = repo_root / "config" / "openf1.json"
+#argument check
+if len(sys.argv) > 2:
+    setting_config = sys.argv[1]
+    print(f"using ADB config file {sys.argv[1]}\n") 
+    repo_root = Path(sys.argv[2])
+elif len(sys.argv) > 1:
+    raise ValueError("config root for ADB not provided")
+else:
+    setting_config = "openf1.json"
+    repo_root = Path(__file__).resolve().parents[2]
+    print(f"Using local config file {setting_config}\n")
+
+
+#checking config path
+config_path = repo_root/"config"/setting_config
 config_text = config_path.read_text(encoding="utf-8")
 config = json.loads(config_text)
 required = ["base_api_url",
-    "landing_dir",
+    "landing_directory",
     "delay_between_requests",
     "request_timeout",
     "openf1_endpoints",
     "openf1_telemetry_ends",
+    "data_path",
     "max_retries",
     "retry_wait",
     "session_name",
@@ -27,8 +43,12 @@ for req in required:
     if req not in config:
         raise ValueError(f"Config error: '{req}' required configuration variable is missing")
 
-    
-checkpoint_path = repo_root / config["data_path"] / "_checkpoint" / "snapshot.json"
+if setting_config == "adb-config-f1.json":
+    checkpoint_path = Path(config["data_path"])/"_checkpoint"/"snapshot.json"
+else:
+    checkpoint_path = repo_root/config["data_path"]/"_checkpoint"/"snapshot.json"
+
+
 if checkpoint_path.exists():
     print("checkpoint found, resuming")
     check_read = checkpoint_path.read_text(encoding="utf-8")
@@ -36,9 +56,6 @@ if checkpoint_path.exists():
 else:
     check = []
 
-for req in required:
-    if req not in config:
-        raise ValueError(f"Config error: '{req}' missing in openf1.json")
 
 verified_endps = ["laps", "stints", "pit", "position", "intervals", "weather", "race_control", "drivers", "car_data", "location"]
 joined_config_list = config["openf1_telemetry_ends"] + config["openf1_endpoints"]
@@ -100,10 +117,10 @@ def safe_write(path, text):
     temp_path.replace(path)
 
 
-def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url, landing_dir, request_timeout, checkpoint_path, checkpoint_list, max_retries, sleep_time_retry, driver_number=None):
+def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url, landing_directory, request_timeout, checkpoint_path, checkpoint_list, max_retries, sleep_time_retry, driver_number=None):
 
     file_name = f"{endpoint_name}.json"
-    base_path = landing_dir/endpoint_name/str(year)
+    base_path = landing_directory/endpoint_name/str(year)
     path_with_session_id = base_path/str(session_key)
 
     params = {
@@ -145,14 +162,14 @@ def fetch_and_save(endpoint_name, session_key, year, delay_bw_req, base_api_url,
         print(f"No data found for the parameters: endpoint: {endpoint_name}, year: {year}, session: {session_key}")
     else:
         raise ValueError(f"Exited with status {status} for endpoint {endpoint_name}")
+    checkpoint_path.parent.mkdir(parents=True, exist_ok=True) 
     checkpoint_list.append(built_checkpoint_id)
-    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     safe_write(checkpoint_path, json.dumps(checkpoint_list))
 
 # main-call-----
 print("Discovering sessions.....")
 
-sessions_all = discover_sessions(year, config["session_name"], config["landing_dir"], config["request_timeout"], config["max_retries"], config["retry_wait"], config["base_api_url"], repo_root)
+sessions_all = discover_sessions(year, config["session_name"], config["landing_directory"], config["request_timeout"], config["max_retries"], config["retry_wait"], config["base_api_url"], repo_root)
 
 selected_sessions = sessions_all[:config["max_sessions"]]
 
@@ -165,10 +182,10 @@ else:
 for s_selected in selected_sessions:
     print(f"-----fetching session_id: {s_selected}-----\n")
     for endpoint in config["openf1_endpoints"]:
-        fetch_and_save(endpoint,s_selected,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"], checkpoint_path, check, config["max_retries"], config["retry_wait"])
+        fetch_and_save(endpoint,s_selected,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_directory"],config["request_timeout"], checkpoint_path, check, config["max_retries"], config["retry_wait"])
 
     driver_num_list = []
-    driver_num_append = repo_root / config["landing_dir"] / "drivers" / str(year) / str(s_selected) / "drivers.json"
+    driver_num_append = repo_root / config["landing_directory"] / "drivers" / str(year) / str(s_selected) / "drivers.json"
     read_driver_num = driver_num_append.read_text(encoding="utf-8")
     driver_num_info = json.loads(read_driver_num)
 
@@ -178,5 +195,5 @@ for s_selected in selected_sessions:
 
     for t_endpoint in config["openf1_telemetry_ends"]:
         for driver in driver_num_list:
-            fetch_and_save(t_endpoint,s_selected,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_dir"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
+            fetch_and_save(t_endpoint,s_selected,year,config["delay_between_requests"],config["base_api_url"], repo_root/config["landing_directory"],config["request_timeout"],checkpoint_path, check, config["max_retries"], config["retry_wait"], driver)
 
