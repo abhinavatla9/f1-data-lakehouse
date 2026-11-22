@@ -1,6 +1,6 @@
 {
     "base_api_url": "https://api.openf1.org/v1/",
-    "landing_dir": "data/landing/openf1",
+    "landing_directory": "data/landing/openf1",
     "delay_between_requests": 3,
     "data_path": "data",
     "request_timeout": 30,
