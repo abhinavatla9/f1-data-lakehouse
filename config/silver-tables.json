@@ -1,0 +1,165 @@
+{
+  "laps": {
+    "natural_key": ["session_key", "driver_number", "lap_number"],
+    "casts": {
+      "date_start": "timestamp",
+      "driver_number": "int",
+      "duration_sector_1": "double",
+      "duration_sector_2": "double",
+      "duration_sector_3": "double",
+      "i1_speed": "int",
+      "i2_speed": "int",
+      "is_pit_out_lap": "boolean",
+      "lap_duration": "double",
+      "lap_number": "int",
+      "meeting_key": "int",
+      "segments_sector_1": "string",
+      "segments_sector_2": "string",
+      "segments_sector_3": "string",
+      "session_key": "int",
+      "st_speed": "int"
+    }
+  },
+  "pit": {
+    "natural_key": ["session_key", "driver_number", "lap_number"],
+    "casts": {
+      "date": "timestamp",
+      "driver_number": "int",
+      "lane_duration": "double",
+      "lap_number": "int",
+      "meeting_key": "int",
+      "pit_duration": "double",
+      "session_key": "int",
+      "stop_duration": "double"
+    }
+  },
+  "position": {
+    "natural_key" : ["session_key", "driver_number", "date"],
+    "casts": {
+      "date": "timestamp",
+      "driver_number": "int",
+      "meeting_key": "int",
+      "position": "int",
+      "session_key": "int"
+    }
+  },
+  "drivers": {
+    "natural_key": ["session_key", "driver_number"],
+    "casts": {
+      "broadcast_name": "string",
+      "country_code": "string",
+      "driver_number": "int",
+      "first_name": "string",
+      "full_name": "string",
+      "headshot_url": "string",
+      "last_name": "string",
+      "meeting_key": "int",
+      "name_acronym": "string",
+      "session_key": "int",
+      "team_colour": "string",
+      "team_name": "string"
+    }
+  },
+  "stints": {
+    "natural_key" : ["session_key", "driver_number", "stint_number"],
+    "casts": {
+      "compound": "string",
+      "driver_number": "int",
+      "lap_end": "int",
+      "lap_start": "int",
+      "meeting_key": "int",
+      "session_key": "int",
+      "stint_number": "int",
+      "tyre_age_at_start": "int"
+    }
+  },
+  "sessions": {
+    "natural_key": ["session_key"],
+    "casts": {
+      "circuit_key": "int",
+      "circuit_short_name": "string",
+      "country_code": "string",
+      "country_key": "int",
+      "country_name": "string",
+      "date_end": "timestamp",
+      "date_start": "timestamp",
+      "gmt_offset": "string",
+      "is_cancelled": "boolean",
+      "location": "string",
+      "meeting_key": "int",
+      "session_key": "int",
+      "session_name": "string",
+      "session_type": "string",
+      "year": "int"
+    }
+  },
+  "intervals": {
+    "natural_key": ["session_key", "driver_number", "date"],
+    "casts": {
+      "date": "timestamp",
+      "driver_number": "int",
+      "gap_to_leader": "string",
+      "interval": "string",
+      "meeting_key": "int",
+      "session_key": "int"
+    }
+  },
+  "race_control": {
+    "natural_key": ["session_key", "date", "message"],
+    "casts": {
+      "category": "string",
+      "date": "timestamp",
+      "driver_number": "int",
+      "flag": "string",
+      "lap_number": "int",
+      "meeting_key": "int",
+      "message": "string",
+      "qualifying_phase": "int",
+      "scope": "string",
+      "sector": "int",
+      "session_key": "int"
+    }
+  },
+  "weather": {
+    "natural_key": ["session_key", "date"],
+    "casts": {
+      "air_temperature": "double",
+      "date": "timestamp",
+      "humidity": "double",
+      "meeting_key": "int",
+      "pressure": "double",
+      "rainfall": "int",
+      "session_key": "int",
+      "track_temperature": "double",
+      "wind_direction": "int",
+      "wind_speed": "double"
+    }
+  },
+  "car_data": {
+    "natural_key": ["session_key", "driver_number", "date"],
+    "casts": {
+      "brake": "int",
+      "date": "timestamp",
+      "driver_number": "int",
+      "drs": "int",
+      "meeting_key": "int",
+      "n_gear": "int",
+      "rpm": "int",
+      "session_key": "int",
+      "speed": "int",
+      "throttle": "int"
+    }
+  },
+  "location": {
+    "natural_key": ["session_key", "driver_number", "date"],
+    "casts": {
+      "date": "timestamp",
+      "driver_number": "int",
+      "meeting_key": "int",
+      "session_key": "int",
+      "x": "int",
+      "y": "int",
+      "z": "int"
+    }
+  }
+}
